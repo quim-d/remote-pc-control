@@ -1,0 +1,19 @@
+# PlatformIO
+.pio/
+.piolibdeps/
+.cmake/
+cmake-build-*/
+
+# VSCode
+.vscode/*.db
+.vscode/ipch
+.vscode/.browse.VC.db
+# (opcional) si quieres ignorar toda la carpeta:
+# .vscode/
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
