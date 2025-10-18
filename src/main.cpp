@@ -20,8 +20,8 @@
 #include <Preferences.h>
 
 // ====== Config Wi-Fi i credencials app ======
-const char* www_username = "Username";
-const char* www_password = "Password";
+const char* www_username = "quim";
+const char* www_password = "quim";
 
 // ====== Maquinari ======
 WebServer server(80);
