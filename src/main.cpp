@@ -18,6 +18,7 @@
 #include <ESP32Servo.h>
 #include <WiFiUdp.h>
 #include <Preferences.h>
+#include <ESP32Ping.h>   // <-- NOVETAT: Ping ICMP
 
 // ====== Config Wi-Fi i credencials app ======
 const char* www_username = "quim";
@@ -76,6 +77,7 @@ void handleWake();
 void handleWakeSaved();
 void handleAdd();
 void handleDelete();
+void handlePing();        // <-- NOVETAT
 void handleNotFound();
 
 // Helpers WOL/MAC
@@ -134,6 +136,7 @@ void setup() {
   server.on("/wake_saved",  HTTP_POST, handleWakeSaved);
   server.on("/add",         HTTP_POST, handleAdd);
   server.on("/delete",      HTTP_POST, handleDelete);
+  server.on("/ping",        HTTP_POST, handlePing);   // <-- NOVETAT
 
   // Rutes portal Wi-Fi (sense auth per onboarding en AP)
   routesWifi();
@@ -199,7 +202,7 @@ void sendHTML() {
   }
 
   String html;
-  html.reserve(8000);
+  html.reserve(9000);
   html += F(
     "<!DOCTYPE html><html lang='es'><head>"
     "<meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
@@ -253,6 +256,17 @@ void sendHTML() {
             "<button class='btn' type='submit'>Despertar</button>"
             "</div>"
             "</form></div>");
+
+  // <-- NOVETAT: Ping a un host/IP
+  html += F("<div class='form'><div class='section-title'>Ping a un host/IP</div>"
+            "<form method='POST' action='/ping'>"
+            "<div class='row'>"
+            "<input class='input' name='host' placeholder='Ex.: 192.168.1.50 o pc.local' required>"
+            "<button class='btn' type='submit'>Fer ping</button>"
+            "</div>"
+            "</form>"
+            "<p class='muted' style='margin-top:8px'>Nota: alguns equips poden bloquejar ICMP (firewall).</p>"
+            "</div>");
 
   // Dispositius guardats
   html += F("<div class='form'><div class='section-title'>Dispositius guardats</div>");
@@ -381,6 +395,50 @@ void handleDelete() {
   devices[idx].mac  = "";
   saveDevices();
   sendFeedbackPage("Dispositiu eliminat.", true);
+}
+
+// <-- NOVETAT: Handler del ping
+void handlePing() {
+  if (!checkAuthOrAsk()) return;
+
+  if (!(WiFi.getMode() & WIFI_STA) || WiFi.status() != WL_CONNECTED) {
+    sendFeedbackPage("Cal estar connectat a Wi-Fi per fer ping.", false);
+    return;
+  }
+
+  if (!server.hasArg("host")) {
+    sendFeedbackPage("Falta 'host'.", false);
+    return;
+  }
+
+  String host = server.arg("host"); host.trim();
+  if (host.length() == 0) {
+    sendFeedbackPage("Host buit.", false);
+    return;
+  }
+
+  IPAddress ip;
+  bool ipOK = ip.fromString(host);
+  if (!ipOK) {
+    if (WiFi.hostByName(host.c_str(), ip) != 1) {
+      sendFeedbackPage("No s'ha pogut resoldre l'host.", false);
+      return;
+    }
+  }
+
+  const uint8_t count = 4;
+  bool ok = Ping.ping(ip, count);
+  String msg;
+
+  if (ok) {
+    float avg = Ping.averageTime();               // ms
+    uint8_t loss = 100 - Ping.success();          // % perdut
+    msg = "Ping " + ip.toString() + " OK — avg " + String(avg, 1) + " ms — pèrdua " + String(loss) + "%.";
+  } else {
+    msg = "Ping a " + ip.toString() + " ha fallat.";
+  }
+
+  sendFeedbackPage(msg, ok);
 }
 
 void handleNotFound() {
