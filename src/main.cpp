@@ -1,6 +1,6 @@
 /*
-  Bestia Control (ESP32) — Wi-Fi provisioning integrat, Sense NTP/WireGuard
-  - Wi-Fi: intenta xarxes guardades; si falla, aixeca AP "BESTIA-SETUP"
+  DWIGHT Control (ESP32) — Wi-Fi provisioning integrat, Sense NTP/WireGuard
+  - Wi-Fi: intenta xarxes guardades; si falla, aixeca AP "DWIGHT-SETUP"
   - Portal /wifi sense auth (per facilitar onboarding en AP)
   - WebServer (Basic Auth + Cookies) per la UI principal
   - Servo: PRESS (2s) i HOLD (11s)
@@ -30,7 +30,7 @@ WiFiUDP   udp;
 Preferences prefs;
 
 // Pins
-const int servoPin      = 13;
+const int servoPin      = 12;
 const int bootButtonPin = 0;   // BOOT amb PULLUP intern
 
 // ====== WOL: dispositius guardats a NVS ======
@@ -52,7 +52,7 @@ static const int MAX_NETS = 8;
 Net nets[MAX_NETS];
 
 // AP de fallback
-const char* AP_SSID = "BESTIA-SETUP";
+const char* AP_SSID = "DWIGHT-SETUP";
 const char* AP_PASS = "12345678";
 
 // ====== Cookies d'autenticació (UI principal) ======
@@ -84,7 +84,7 @@ bool isValidMAC(const String& mac);
 bool isValidName(const String& name);
 bool wolSend(const uint8_t mac[6], IPAddress bcast = IPAddress(255,255,255,255), uint16_t port = 9);
 
-// Persistència Bestia (WOL)
+// Persistència DWIGHT (WOL)
 void loadDevices();
 void saveDevices();
 int  findDeviceSlotByName(const String& name);
@@ -113,7 +113,7 @@ void setup() {
   pinMode(bootButtonPin, INPUT_PULLUP);
 
   // Carrega llistes de WOL i Wi-Fi
-  prefs.begin("bestia", false);
+  prefs.begin("DWIGHT", false);
   loadDevices();
   prefs.end();
   loadNets();
@@ -199,34 +199,38 @@ void sendHTML() {
   }
 
   String html;
-  html.reserve(7500);
+  html.reserve(8000);
   html += F(
     "<!DOCTYPE html><html lang='es'><head>"
     "<meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
-    "<title>WAKE-ON-LAN / Bestia</title>"
+    "<title>WAKE-ON-LAN / DWIGHT</title>"
     "<style>"
+    ":root{--bg:#2E2A1C;--panel:#4B260C;--border:#79461D;--text:#F6DC75;--text-muted:rgba(246,220,117,.75);} "
     "*{margin:0;padding:0;box-sizing:border-box}"
-    "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:#1a1a1a;color:#e0e0e0;line-height:1.6;padding:20px}"
+    "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:20px}"
+    "a{color:var(--text);text-decoration:none}"
     ".container{max-width:720px;margin:0 auto}"
-    "h1{text-align:center;margin-bottom:30px;color:#fff;font-weight:300;font-size:2rem}"
-    ".form{background:#2d2d2d;padding:20px;border-radius:8px;margin-bottom:20px;border:1px solid #404040}"
-    ".input{width:100%;padding:12px;margin-bottom:10px;background:#1a1a1a;border:1px solid #404040;border-radius:4px;color:#e0e0e0;font-size:14px}"
-    ".input:focus{outline:none;border-color:#4a9eff}"
-    ".btn{padding:12px 20px;background:#4a9eff;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px;width:100%;transition:background .2s}"
-    ".btn:hover{background:#357abd}"
-    ".btn-danger{background:#e74c3c}.btn-danger:hover{background:#c0392b}"
+    "h1{text-align:center;margin-bottom:30px;color:var(--text);font-weight:300;font-size:2rem}"
+    ".form{background:var(--panel);padding:20px;border-radius:12px;margin-bottom:20px;border:1px solid var(--border)}"
+    ".input{width:100%;padding:12px;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px}"
+    ".input:focus{outline:none;border-color:var(--text)}"
+    ".btn{padding:12px 20px;background:var(--border);color:var(--text);border:none;border-radius:8px;cursor:pointer;font-size:14px;width:100%;transition:filter .15s ease}"
+    ".btn:hover{filter:brightness(1.1)}"
+    ".btn-danger{background:var(--panel);border:1px solid var(--border)}"
+    ".btn-danger:hover{filter:brightness(1.1)}"
     ".btn-small{padding:8px 12px;width:auto;margin-right:8px;font-size:12px}"
-    ".device{background:#2d2d2d;padding:15px;margin-bottom:10px;border-radius:6px;border:1px solid #404040}"
+    ".device{background:var(--panel);padding:15px;margin-bottom:10px;border-radius:10px;border:1px solid var(--border)}"
     ".device-name{font-weight:500;margin-bottom:5px}"
-    ".device-mac{font-family:monospace;color:#aaa;font-size:13px;margin-bottom:10px}"
+    ".device-mac{font-family:monospace;color:var(--text-muted);font-size:13px;margin-bottom:10px}"
     ".device-actions{display:flex;gap:8px;flex-wrap:wrap}"
     ".row{display:flex;gap:10px;flex-wrap:wrap}"
     ".row .input{flex:1;min-width:180px}"
-    ".section-title{margin:10px 0 12px 0;font-weight:300;color:#ddd}"
-    ".muted{color:#9aa}"
+    ".section-title{margin:10px 0 12px 0;font-weight:300;color:var(--text)}"
+    ".muted{color:var(--text-muted)}"
+    "hr{border:0;border-top:1px solid var(--border);margin:14px 0}"
     "</style>"
     "</head><body><div class='container'>"
-    "<h1>WAKE-ON-LAN · Control Bestia</h1>"
+    "<h1>DWIGHT</h1>"
   );
 
   // Estat de xarxa i link a /wifi
@@ -265,11 +269,11 @@ void sendHTML() {
     html += F("</div></div>");
   }
   if (!any) {
-    html += F("<p style='color:#999;font-style:italic'>No hi ha dispositius guardats.</p>");
+    html += F("<p class='muted' style='font-style:italic'>No hi ha dispositius guardats.</p>");
   }
 
   // Afegir dispositiu
-  html += F("<hr style='border:0;border-top:1px solid #404040;margin:14px 0'>"
+  html += F("<hr>"
             "<div class='section-title'>Afegir dispositiu</div>"
             "<form method='POST' action='/add'>"
             "<input class='input' name='name' placeholder='Nom del dispositiu' required>"
@@ -288,16 +292,19 @@ void sendFeedbackPage(const String& msg, bool ok, bool refreshHome) {
   if (refreshHome) html += F("<meta http-equiv='refresh' content='2;url=/'/>");
   html += F("<meta name='viewport' content='width=device-width,initial-scale=1'>"
             "<title>Resultat</title>"
-            "<style>body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}"
-            ".box{background:#2d2d2d;border:1px solid #404040;border-radius:8px;padding:20px;max-width:480px;text-align:center}"
-            ".ok{color:#27ae60}.ko{color:#e74c3c}</style></head><body><div class='box'>");
+            "<style>"
+            ":root{--bg:#2E2A1C;--panel:#4B260C;--border:#79461D;--text:#F6DC75;}"
+            "body{background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}"
+            ".box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:480px;text-align:center}"
+            ".ok{color:var(--text)}.ko{color:var(--text)}"
+            "</style></head><body><div class='box'>");
   html += "<h3 class='" + String(ok ? "ok" : "ko") + "'>" + msg + "</h3>";
   if (refreshHome) html += F("<p>Tornant a l'inici…</p>");
   html += F("</div></body></html>");
   server.send(ok ? 200 : 400, "text/html; charset=utf-8", html);
 }
 
-// ====== Handlers Bestia ======
+// ====== Handlers DWIGHT ======
 void handlePress() {
   if (!checkAuthOrAsk()) return;
   myservo.write(120);
@@ -426,7 +433,7 @@ bool wolSend(const uint8_t mac[6], IPAddress bcast, uint16_t port) {
   return udp.endPacket() == 1;
 }
 
-// ====== Persistència Bestia (WOL) ======
+// ====== Persistència DWIGHT (WOL) ======
 void loadDevices() {
   for (uint8_t i = 0; i < MAX_DEVICES; ++i) {
     String keyN = "dname" + String(i);
@@ -440,7 +447,7 @@ void loadDevices() {
 }
 
 void saveDevices() {
-  prefs.begin("bestia", false);
+  prefs.begin("DWIGHT", false);
   for (uint8_t i = 0; i < MAX_DEVICES; ++i) {
     String keyN = "dname" + String(i);
     String keyM = "dmac"  + String(i);
@@ -535,16 +542,22 @@ void startAP() {
 
 // ====== Portal /wifi (sense auth) ======
 String htmlHeader() {
-  return F("<!doctype html><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
-           "<title>Wi-Fi Setup</title><style>"
-           "body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:20px}"
-           ".box{max-width:720px;margin:0 auto;background:#2d2d2d;border:1px solid #404040;border-radius:8px;padding:20px}"
-           "input,button{padding:10px;border-radius:6px;border:1px solid #404040;background:#1a1a1a;color:#e0e0e0}"
-           "button{background:#4a9eff;border:none;cursor:pointer}"
-           "table{width:100%;border-collapse:collapse;margin-top:10px}"
-           "td,th{border-bottom:1px solid #404040;padding:8px;text-align:left}"
-           "a{color:#9cf;text-decoration:none}"
-           "</style>");
+  return F(
+    "<!doctype html><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+    "<title>Wi-Fi Setup</title><style>"
+    ":root{--bg:#2E2A1C;--panel:#4B260C;--border:#79461D;--text:#F6DC75;--text-muted:rgba(246,220,117,.75);} "
+    "body{background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:20px}"
+    "a{color:var(--text);text-decoration:none}"
+    ".box{max-width:720px;margin:0 auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}"
+    "input{padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text)}"
+    "input:focus{outline:none;border-color:var(--text)}"
+    "button{padding:10px 16px;border-radius:6px;border:none;background:var(--border);color:var(--text);cursor:pointer;transition:filter .15s}"
+    "button:hover{filter:brightness(1.1)}"
+    "table{width:100%;border-collapse:collapse;margin-top:10px}"
+    "td,th{border-bottom:1px solid var(--border);padding:8px;text-align:left}"
+    "th{font-weight:500}"
+    "</style>"
+  );
 }
 
 void pageWifi() {
